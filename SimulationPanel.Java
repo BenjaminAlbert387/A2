@@ -15,7 +15,7 @@ public class SimulationPanel extends JPanel {
     private static final int HEIGHT = 720;
     private static final int NUMBER_OF_CIRCLES = 50;
     private static final int MAX_ITERATIONS = 5000;
-    private static final int THREAD_COUNT = 2;
+    private static final int THREAD_COUNT = 8;
 
     private Circle[] circles;
     private Timer timer;
