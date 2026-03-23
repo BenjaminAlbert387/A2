@@ -6,14 +6,11 @@ import java.util.Random;
 
 public class CollidingBouncingCircles extends JPanel {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private static final int WIDTH = 1280;
+    private static final long serialVersionUID = 1L;
+    private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 100;
-    private static final int MAX_ITERATIONS = 10000000; // long-running simulation
+    private static final int NUMBER_OF_CIRCLES = 500;
+    private static final int MAX_ITERATIONS = 5000; // Short running simulation
 
     static class Circle {
         double x, y; // use double for smoother collision physics
@@ -54,6 +51,11 @@ public class CollidingBouncingCircles extends JPanel {
     private long lastFPSCheck = System.currentTimeMillis();
     private int fps = 0;
 
+    // Average FPS calculation
+    private long totalFrames = 0;
+    private long simulationStart = System.currentTimeMillis();
+    private double avgFps = 0;
+
     public CollidingBouncingCircles() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.BLACK);
@@ -62,7 +64,7 @@ public class CollidingBouncingCircles extends JPanel {
         circles = new Circle[NUMBER_OF_CIRCLES];
 
         for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
-            int radius = 10;//random.nextInt(20) + 10;
+            int radius = 10;
             double x = random.nextInt(WIDTH - 2*radius) + radius;
             double y = random.nextInt(HEIGHT - 2*radius) + radius;
 
@@ -77,10 +79,10 @@ public class CollidingBouncingCircles extends JPanel {
             circles[i] = new Circle(x, y, radius, color, dx, dy);
         }
 
-        //50 == 20fps
         timer = new Timer(0, e -> {
             if (iterations >= MAX_ITERATIONS) {
                 timer.stop();
+                System.out.println("Simulation complete. Final average FPS: " + String.format("%.1f", avgFps));
                 return;
             }
 
@@ -97,11 +99,17 @@ public class CollidingBouncingCircles extends JPanel {
 
             // FPS counter
             frames++;
+            totalFrames++;
             long now = System.currentTimeMillis();
             if (now - lastFPSCheck >= 1000) {
                 fps = frames;
                 frames = 0;
                 lastFPSCheck = now;
+
+                // Calculate overall average since simulation started
+                double elapsedSeconds = (now - simulationStart) / 1000.0;
+                avgFps = totalFrames / elapsedSeconds;
+                System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
             }
         });
 
@@ -150,11 +158,13 @@ public class CollidingBouncingCircles extends JPanel {
             c.draw(g);
         }
 
-        // Draw FPS
+        // Draw current and average FPS on screen
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString("FPS: " + fps, 10, 20);
+        g.drawString("Avg FPS: " + String.format("%.1f", avgFps), 10, 40);
     }
+
     public static void main(String[] args) {
         JFrame frame = new JFrame("Colliding Bouncing Circles");
         CollidingBouncingCircles panel = new CollidingBouncingCircles();
