@@ -1,4 +1,4 @@
-// To run the code: java -cp . CollidingBouncingCircles.java
+// To run the code: java -cp . CollidingBouncingCircles.java in terminal
 
 import javax.swing.*;
 import java.awt.*;
@@ -78,7 +78,7 @@ public class CollidingBouncingCircles extends JPanel {
         }
 
         //50 == 20fps
-        timer = new Timer(20, e -> {
+        timer = new Timer(0, e -> {
             if (iterations >= MAX_ITERATIONS) {
                 timer.stop();
                 return;
