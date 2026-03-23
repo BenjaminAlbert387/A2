@@ -13,9 +13,9 @@ public class SimulationPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 50;
-    private static final int MAX_ITERATIONS = 5000;
-    private static final int THREAD_COUNT = 8;
+    private static final int NUMBER_OF_CIRCLES = 500;
+    private static final int MAX_ITERATIONS = 15000;
+    private static final int THREAD_COUNT = 2;
 
     private Circle[] circles;
     private Timer timer;
