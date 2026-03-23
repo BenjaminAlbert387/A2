@@ -1,4 +1,5 @@
-// To run the code: java -cp . SimulationPanel.java in terminal
+// To run the code: javac Circle.java WorkerTask.java SimulationPanel.java in terminal
+// Then run: java -cp . SimulationPanel.java in terminal
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +13,7 @@ public class SimulationPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 100;
+    private static final int NUMBER_OF_CIRCLES = 50;
     private static final int MAX_ITERATIONS = 5000;
     private static final int THREAD_COUNT = 2;
 
