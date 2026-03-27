@@ -1,61 +1,38 @@
-// To run the code: java -cp . CollidingBouncingCircles.java in terminal
+// Then run: java -cp . SimulationPanel.java in terminal
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.*;
 
-public class CollidingBouncingCircles extends JPanel {
+public class SimulationPanelTime extends JPanel {
 
     private static final long serialVersionUID = 1L;
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 2500;
+    private static final int NUMBER_OF_CIRCLES = 50;
     private static final int RUN_DURATION_SECONDS = 60;
-
-    static class Circle {
-        double x, y; // use double for smoother collision physics
-        double dx, dy;
-        int radius;
-        Color color;
-
-        public Circle(double x, double y, int radius, Color color, double dx, double dy) {
-            this.x = x;
-            this.y = y;
-            this.radius = radius;
-            this.color = color;
-            this.dx = dx;
-            this.dy = dy;
-        }
-
-        public void move(int panelWidth, int panelHeight) {
-            x += dx;
-            y += dy;
-
-            // Bounce on walls
-            if (x - radius <= 0 || x + radius >= panelWidth) dx = -dx;
-            if (y - radius <= 0 || y + radius >= panelHeight) dy = -dy;
-        }
-
-        public void draw(Graphics g) {
-            g.setColor(color);
-            g.fillOval((int)(x - radius), (int)(y - radius), radius*2, radius*2);
-        }
-    }
+    private static final int THREAD_COUNT = 2;
 
     private Circle[] circles;
     private Timer timer;
 
-    // FPS calculation
+    // Thread pool
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_COUNT);
+
+    // FPS tracking
     private int frames = 0;
     private long lastFPSCheck = System.currentTimeMillis();
     private int fps = 0;
 
-    // Average FPS calculation
+    // Average FPS tracking
     private long totalFrames = 0;
     private long simulationStart = System.currentTimeMillis();
     private double avgFps = 0;
 
-    public CollidingBouncingCircles() {
+    public SimulationPanelTime() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.BLACK);
 
@@ -64,17 +41,16 @@ public class CollidingBouncingCircles extends JPanel {
 
         for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
             int radius = 10;
-            double x = random.nextInt(WIDTH - 2*radius) + radius;
-            double y = random.nextInt(HEIGHT - 2*radius) + radius;
+            double x = random.nextInt(WIDTH - 2 * radius) + radius;
+            double y = random.nextInt(HEIGHT - 2 * radius) + radius;
 
             double dx, dy;
             do {
-                dx = random.nextDouble() * 4 - 2; // -2 to 2
+                dx = random.nextDouble() * 4 - 2;
                 dy = random.nextDouble() * 4 - 2;
             } while (dx == 0 && dy == 0);
 
             Color color = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
-
             circles[i] = new Circle(x, y, radius, color, dx, dy);
         }
 
@@ -85,17 +61,44 @@ public class CollidingBouncingCircles extends JPanel {
             // Stop after RUN_DURATION_SECONDS
             if (elapsedSeconds >= RUN_DURATION_SECONDS) {
                 timer.stop();
+                threadPool.shutdown();
                 System.out.println("Simulation complete after " + RUN_DURATION_SECONDS + " seconds.");
                 System.out.println("Final average FPS: " + String.format("%.1f", avgFps));
                 return;
             }
 
-            // Move circles
-            for (Circle c : circles) {
-                c.move(getWidth(), getHeight());
+            try {
+                // Step 1 - split circles into batches and serialise
+                int batchSize = circles.length / THREAD_COUNT;
+                List<Future<List<String>>> futures = new ArrayList<>();
+
+                for (int i = 0; i < THREAD_COUNT; i++) {
+                    int start = i * batchSize;
+                    // Last thread takes any remainder
+                    int end = (i == THREAD_COUNT - 1) ? circles.length : start + batchSize;
+
+                    List<String> batch = new ArrayList<>();
+                    for (int j = start; j < end; j++) {
+                        batch.add(circles[j].serialise());
+                    }
+
+                    // Step 2 - submit batch to thread pool
+                    futures.add(threadPool.submit(new WorkerTask(batch, getWidth(), getHeight())));
+                }
+
+                // Step 3 - collect results and deserialise back into circles array
+                int index = 0;
+                for (Future<List<String>> future : futures) {
+                    for (String s : future.get()) {
+                        circles[index++] = Circle.deserialise(s);
+                    }
+                }
+
+            } catch (InterruptedException | ExecutionException ex) {
+                ex.printStackTrace();
             }
 
-            // Handle collisions
+            // Step 4 - handle collisions centrally
             handleCollisions();
 
             repaint();
@@ -108,8 +111,8 @@ public class CollidingBouncingCircles extends JPanel {
                 frames = 0;
                 lastFPSCheck = now;
 
-                double elapsed = (now - simulationStart) / 1000.0;
-                avgFps = totalFrames / elapsed;
+                double elapsedSecs = (now - simulationStart) / 1000.0;
+                avgFps = totalFrames / elapsedSecs;
                 System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
             }
         });
@@ -123,29 +126,27 @@ public class CollidingBouncingCircles extends JPanel {
                 Circle a = circles[i];
                 Circle b = circles[j];
 
-                double dx = b.x - a.x;
-                double dy = b.y - a.y;
-                double dist = Math.sqrt(dx*dx + dy*dy);
-                double minDist = a.radius + b.radius;
+                double dx = b.getX() - a.getX();
+                double dy = b.getY() - a.getY();
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                double minDist = a.getRadius() + b.getRadius();
 
                 if (dist < minDist) {
-                    // Simple elastic collision approximation: swap velocities along the collision vector
                     double nx = dx / dist;
                     double ny = dy / dist;
 
-                    double p = 2 * (a.dx * nx + a.dy * ny - b.dx * nx - b.dy * ny) / 2;
+                    double p = 2 * (a.getDx() * nx + a.getDy() * ny - b.getDx() * nx - b.getDy() * ny) / 2;
 
-                    a.dx = a.dx - p * nx;
-                    a.dy = a.dy - p * ny;
-                    b.dx = b.dx + p * nx;
-                    b.dy = b.dy + p * ny;
+                    a.setDx(a.getDx() - p * nx);
+                    a.setDy(a.getDy() - p * ny);
+                    b.setDx(b.getDx() + p * nx);
+                    b.setDy(b.getDy() + p * ny);
 
-                    // Move circles so they are no longer overlapping
                     double overlap = minDist - dist;
-                    a.x -= nx * overlap / 2;
-                    a.y -= ny * overlap / 2;
-                    b.x += nx * overlap / 2;
-                    b.y += ny * overlap / 2;
+                    a.setX(a.getX() - nx * overlap / 2);
+                    a.setY(a.getY() - ny * overlap / 2);
+                    b.setX(b.getX() + nx * overlap / 2);
+                    b.setY(b.getY() + ny * overlap / 2);
                 }
             }
         }
@@ -159,21 +160,21 @@ public class CollidingBouncingCircles extends JPanel {
             c.draw(g);
         }
 
-        // Draw current and average FPS on screen
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString("FPS: " + fps, 10, 20);
         g.drawString("Avg FPS: " + String.format("%.1f", avgFps), 10, 40);
+        g.drawString("Threads: " + THREAD_COUNT, 10, 60);
 
         // Draw remaining time
         long elapsed = (System.currentTimeMillis() - simulationStart) / 1000;
         long remaining = RUN_DURATION_SECONDS - elapsed;
-        g.drawString("Time remaining: " + remaining + "s", 10, 60);
+        g.drawString("Time remaining: " + remaining + "s", 10, 80);
     }
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Colliding Bouncing Circles");
-        CollidingBouncingCircles panel = new CollidingBouncingCircles();
+        JFrame frame = new JFrame("Colliding Bouncing Circles - Multithreaded");
+        SimulationPanelTime panel = new SimulationPanelTime();
 
         frame.add(panel);
         frame.pack();
