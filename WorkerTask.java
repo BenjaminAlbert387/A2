@@ -23,28 +23,21 @@ public class WorkerTask implements Runnable {
     @Override
     public void run() {
         while (running) {
-            if (!inputQueue.isEmpty()) {
-                // Dequeue a batch of serialised circle strings
-                String batch = (String) inputQueue.dequeue();
+            // dequeue() busy-waits internally if empty — no separate isEmpty() check needed
+            String batch = (String) inputQueue.dequeue();
 
-                // Process each circle in the batch
-                String[] serialisedCircles = batch.split(";");
-                List<String> results = new ArrayList<>();
+            String[] serialisedCircles = batch.split(";");
+            List<String> results = new ArrayList<>();
 
-                for (String s : serialisedCircles) {
-                    if (!s.isEmpty()) {
-                        Circle c = Circle.deserialise(s);
-                        c.move(panelWidth, panelHeight);
-                        results.add(c.serialise());
-                    }
+            for (String s : serialisedCircles) {
+                if (!s.isEmpty()) {
+                    Circle c = Circle.deserialise(s);
+                    c.move(panelWidth, panelHeight);
+                    results.add(c.serialise());
                 }
-
-                // Put results back as a single string
-                resultQueue.enqueue(String.join(";", results));
-            } else {
-                // No work available, yield to avoid burning CPU
-                Thread.yield();
             }
+
+            resultQueue.enqueue(String.join(";", results));
         }
     }
 }

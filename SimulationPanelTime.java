@@ -1,3 +1,5 @@
+// Run the following line of code first: javac Circle.java WorkQueue.java WorkerTask.java SimulationPanelTime.java
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Random;
@@ -10,27 +12,25 @@ public class SimulationPanelTime extends JPanel {
     private static final int NUMBER_OF_CIRCLES = 50;
     private static final int RUN_DURATION_SECONDS = 60;
     private static final int THREAD_COUNT = 2;
+    private static final int TARGET_FPS = 30;
+    private static final long FRAME_TIME_MS = 1000 / TARGET_FPS;
 
     private Circle[] circles;
-    private Timer timer;
+    private volatile boolean running = true;
 
-    // Manual queues
     private final WorkQueue inputQueue = new WorkQueue(THREAD_COUNT * 2);
     private final WorkQueue resultQueue = new WorkQueue(THREAD_COUNT * 2);
 
-    // Worker threads
     private final WorkerTask[] workerTasks = new WorkerTask[THREAD_COUNT];
     private final Thread[] workerThreads = new Thread[THREAD_COUNT];
 
     // FPS tracking
+    private volatile int fps = 0;
+    private volatile double avgFps = 0;
     private int frames = 0;
     private long lastFPSCheck = System.currentTimeMillis();
-    private int fps = 0;
-
-    // Average FPS tracking
     private long totalFrames = 0;
     private long simulationStart = System.currentTimeMillis();
-    private double avgFps = 0;
 
     public SimulationPanelTime() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -62,67 +62,85 @@ public class SimulationPanelTime extends JPanel {
             workerThreads[i].start();
         }
 
-        timer = new Timer(33, e -> {
-            long now = System.currentTimeMillis();
-            long elapsedSeconds = (now - simulationStart) / 1000;
+        // Game loop thread - replaces javax.swing.Timer
+        Thread gameLoop = new Thread(() -> {
+            simulationStart = System.currentTimeMillis();
+            lastFPSCheck = simulationStart;
 
-            // Stop after RUN_DURATION_SECONDS
-            if (elapsedSeconds >= RUN_DURATION_SECONDS) {
-                timer.stop();
-                for (WorkerTask task : workerTasks) task.stop();
-                System.out.println("Simulation complete after " + RUN_DURATION_SECONDS + " seconds.");
-                System.out.println("Final average FPS: " + String.format("%.1f", avgFps));
-                return;
-            }
+            while (running) {
+                long frameStart = System.currentTimeMillis();
+                long elapsed = (frameStart - simulationStart) / 1000;
 
-            // Step 1 - split circles into batches and serialise to strings
-            int batchSize = circles.length / THREAD_COUNT;
-            for (int i = 0; i < THREAD_COUNT; i++) {
-                int start = i * batchSize;
-                int end = (i == THREAD_COUNT - 1) ? circles.length : start + batchSize;
-
-                StringBuilder batch = new StringBuilder();
-                for (int j = start; j < end; j++) {
-                    if (j > start) batch.append(";");
-                    batch.append(circles[j].serialise());
+                if (elapsed >= RUN_DURATION_SECONDS) {
+                    running = false;
+                    for (WorkerTask task : workerTasks) task.stop();
+                    System.out.println("Simulation complete after " + RUN_DURATION_SECONDS + " seconds.");
+                    System.out.println("Final average FPS: " + String.format("%.1f", avgFps));
+                    break;
                 }
 
-                // Step 2 - enqueue batch as a single string
-                inputQueue.enqueue(batch.toString());
-            }
+                // Step 1 - split circles into batches and enqueue
+                int batchSize = circles.length / THREAD_COUNT;
+                for (int i = 0; i < THREAD_COUNT; i++) {
+                    int start = i * batchSize;
+                    int end = (i == THREAD_COUNT - 1) ? circles.length : start + batchSize;
 
-            // Step 3 - collect results from result queue
-            int index = 0;
-            for (int i = 0; i < THREAD_COUNT; i++) {
-                String result = (String) resultQueue.dequeue();
-                String[] parts = result.split(";");
-                for (String s : parts) {
-                    if (!s.isEmpty()) {
-                        circles[index++] = Circle.deserialise(s);
+                    StringBuilder batch = new StringBuilder();
+                    for (int j = start; j < end; j++) {
+                        if (j > start) batch.append(";");
+                        batch.append(circles[j].serialise());
+                    }
+                    inputQueue.enqueue(batch.toString());
+                }
+
+                // Step 2 - collect results
+                int index = 0;
+                for (int i = 0; i < THREAD_COUNT; i++) {
+                    String result = (String) resultQueue.dequeue();
+                    String[] parts = result.split(";");
+                    for (String s : parts) {
+                        if (!s.isEmpty()) {
+                            circles[index++] = Circle.deserialise(s);
+                        }
+                    }
+                }
+
+                // Step 3 - handle collisions on main loop thread
+                handleCollisions();
+
+                // Step 4 - repaint on EDT
+                SwingUtilities.invokeLater(this::repaint);
+
+                // FPS tracking
+                frames++;
+                totalFrames++;
+                long now = System.currentTimeMillis();
+                if (now - lastFPSCheck >= 1000) {
+                    fps = frames;
+                    frames = 0;
+                    lastFPSCheck = now;
+
+                    double elapsedSecs = (now - simulationStart) / 1000.0;
+                    avgFps = totalFrames / elapsedSecs;
+                    System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
+                }
+
+                // Sleep for remainder of frame budget
+                long frameElapsed = System.currentTimeMillis() - frameStart;
+                long sleepTime = FRAME_TIME_MS - frameElapsed;
+                if (sleepTime > 0) {
+                    try {
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
             }
-
-            // Step 4 - handle collisions centrally
-            handleCollisions();
-
-            repaint();
-
-            // FPS tracking
-            frames++;
-            totalFrames++;
-            if (now - lastFPSCheck >= 1000) {
-                fps = frames;
-                frames = 0;
-                lastFPSCheck = now;
-
-                double elapsedSecs = (now - simulationStart) / 1000.0;
-                avgFps = totalFrames / elapsedSecs;
-                System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
-            }
         });
 
-        timer.start();
+        gameLoop.setDaemon(true);
+        gameLoop.start();
     }
 
     private void handleCollisions() {
@@ -136,7 +154,7 @@ public class SimulationPanelTime extends JPanel {
                 double dist = Math.sqrt(dx * dx + dy * dy);
                 double minDist = a.getRadius() + b.getRadius();
 
-                if (dist < minDist) {
+                if (dist < minDist && dist > 0) {
                     double nx = dx / dist;
                     double ny = dy / dist;
 
@@ -161,7 +179,8 @@ public class SimulationPanelTime extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        for (Circle c : circles) {
+        Circle[] snapshot = circles;
+        for (Circle c : snapshot) {
             c.draw(g);
         }
 
@@ -177,13 +196,15 @@ public class SimulationPanelTime extends JPanel {
     }
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Colliding Bouncing Circles - Multithreaded");
-        SimulationPanelTime panel = new SimulationPanelTime();
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Colliding Bouncing Circles - Multithreaded");
+            SimulationPanelTime panel = new SimulationPanelTime();
 
-        frame.add(panel);
-        frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+            frame.add(panel);
+            frame.pack();
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
     }
 }
