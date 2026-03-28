@@ -1,90 +1,45 @@
 public class WorkQueue {
 
     private final Object[] items;
-    private int head = 0;
-    private int tail = 0;
-    private int count = 0;
+    private volatile int head = 0;
+    private volatile int tail = 0;
+    private volatile int count = 0;
     private final int capacity;
-    private volatile boolean lock = false;
 
     public WorkQueue(int capacity) {
         this.capacity = capacity;
         items = new Object[capacity];
     }
 
-    private void acquireLock() {
-        while (true) {
-            if (!lock) {
-                lock = true;
-                return;
-            }
-            Thread.yield();
-        }
-    }
-
-    private void releaseLock() {
-        lock = false;
-    }
-
+    // Add item to queue - busy waits if full
     public void enqueue(Object item) {
-        while (true) {
-            acquireLock();
-            if (count < capacity) {
-                items[tail] = item;
-                tail = (tail + 1) % capacity;
-                count++;
-                releaseLock();
-                return;
-            }
-            releaseLock();
+        while (count == capacity) {
+            // Busy wait until space is available
             Thread.yield();
         }
+        items[tail] = item;
+        tail = (tail + 1) % capacity;
+        count++;
     }
 
+    // Remove item from queue - busy waits if empty
     public Object dequeue() {
-        while (true) {
-            acquireLock();
-            if (count > 0) {
-                Object item = items[head];
-                items[head] = null;
-                head = (head + 1) % capacity;
-                count--;
-                releaseLock();
-                return item;
-            }
-            releaseLock();
+        while (count == 0) {
+            // Busy wait until item is available
             Thread.yield();
         }
-    }
-
-    public Object dequeue(boolean[] runningFlag) {
-        while (true) {
-            if (!runningFlag[0]) return null;
-            acquireLock();
-            if (count > 0) {
-                Object item = items[head];
-                items[head] = null;
-                head = (head + 1) % capacity;
-                count--;
-                releaseLock();
-                return item;
-            }
-            releaseLock();
-            Thread.yield();
-        }
+        Object item = items[head];
+        items[head] = null;
+        head = (head + 1) % capacity;
+        count--;
+        return item;
     }
 
     public boolean isEmpty() {
-        acquireLock();
-        boolean empty = count == 0;
-        releaseLock();
-        return empty;
+        return count == 0;
     }
 
     public int size() {
-        acquireLock();
-        int size = count;
-        releaseLock();
-        return size;
+        return count;
     }
 }

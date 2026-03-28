@@ -6,7 +6,6 @@ public class WorkerTask implements Runnable {
     private final WorkQueue inputQueue;
     private final WorkQueue resultQueue;
     private volatile boolean running = true;
-    private final boolean[] runningFlag = new boolean[]{true};
     private final int panelWidth;
     private final int panelHeight;
 
@@ -19,27 +18,33 @@ public class WorkerTask implements Runnable {
 
     public void stop() {
         running = false;
-        runningFlag[0] = false;
     }
 
     @Override
     public void run() {
         while (running) {
-            String batch = (String) inputQueue.dequeue(runningFlag);
-            if (batch == null) break;
+            if (!inputQueue.isEmpty()) {
+                // Dequeue a batch of serialised circle strings
+                String batch = (String) inputQueue.dequeue();
 
-            String[] serialisedCircles = batch.split(";");
-            List<String> results = new ArrayList<>();
+                // Process each circle in the batch
+                String[] serialisedCircles = batch.split(";");
+                List<String> results = new ArrayList<>();
 
-            for (String s : serialisedCircles) {
-                if (!s.isEmpty()) {
-                    Circle c = Circle.deserialise(s);
-                    c.move(panelWidth, panelHeight);
-                    results.add(c.serialise());
+                for (String s : serialisedCircles) {
+                    if (!s.isEmpty()) {
+                        Circle c = Circle.deserialise(s);
+                        c.move(panelWidth, panelHeight);
+                        results.add(c.serialise());
+                    }
                 }
-            }
 
-            resultQueue.enqueue(String.join(";", results));
+                // Put results back as a single string
+                resultQueue.enqueue(String.join(";", results));
+            } else {
+                // No work available, yield to avoid burning CPU
+                Thread.yield();
+            }
         }
     }
 }
