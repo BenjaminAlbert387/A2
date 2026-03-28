@@ -178,7 +178,7 @@ public class SimulationPanelTime extends JPanel {
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Colliding Bouncing Circles - Multithreaded");
-        SimulationPanel panel = new SimulationPanel();
+        SimulationPanelTime panel = new SimulationPanelTime();
 
         frame.add(panel);
         frame.pack();
