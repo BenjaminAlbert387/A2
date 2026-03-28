@@ -6,6 +6,7 @@ public class WorkerTask implements Runnable {
     private final WorkQueue inputQueue;
     private final WorkQueue resultQueue;
     private volatile boolean running = true;
+    private final boolean[] runningFlag = new boolean[]{true};
     private final int panelWidth;
     private final int panelHeight;
 
@@ -18,13 +19,14 @@ public class WorkerTask implements Runnable {
 
     public void stop() {
         running = false;
+        runningFlag[0] = false;
     }
 
     @Override
     public void run() {
         while (running) {
-            // dequeue() busy-waits internally if empty — no separate isEmpty() check needed
-            String batch = (String) inputQueue.dequeue();
+            String batch = (String) inputQueue.dequeue(runningFlag);
+            if (batch == null) break;
 
             String[] serialisedCircles = batch.split(";");
             List<String> results = new ArrayList<>();

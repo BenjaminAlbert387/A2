@@ -5,8 +5,6 @@ public class WorkQueue {
     private int tail = 0;
     private int count = 0;
     private final int capacity;
-
-    // Manual spinlock flag: false = unlocked, true = locked
     private volatile boolean lock = false;
 
     public WorkQueue(int capacity) {
@@ -15,12 +13,9 @@ public class WorkQueue {
     }
 
     private void acquireLock() {
-        // Spin until we can set lock from false -> true (CAS-style via volatile)
         while (true) {
             if (!lock) {
                 lock = true;
-                // Double-check after acquiring to reduce (not eliminate) races
-                // This is a best-effort spinlock without sun.misc.Unsafe
                 return;
             }
             Thread.yield();
@@ -42,7 +37,7 @@ public class WorkQueue {
                 return;
             }
             releaseLock();
-            Thread.yield(); // Queue full, wait and retry
+            Thread.yield();
         }
     }
 
@@ -58,7 +53,24 @@ public class WorkQueue {
                 return item;
             }
             releaseLock();
-            Thread.yield(); // Queue empty, wait and retry
+            Thread.yield();
+        }
+    }
+
+    public Object dequeue(boolean[] runningFlag) {
+        while (true) {
+            if (!runningFlag[0]) return null;
+            acquireLock();
+            if (count > 0) {
+                Object item = items[head];
+                items[head] = null;
+                head = (head + 1) % capacity;
+                count--;
+                releaseLock();
+                return item;
+            }
+            releaseLock();
+            Thread.yield();
         }
     }
 

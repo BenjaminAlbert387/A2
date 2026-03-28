@@ -24,7 +24,6 @@ public class SimulationPanelTime extends JPanel {
     private final WorkerTask[] workerTasks = new WorkerTask[THREAD_COUNT];
     private final Thread[] workerThreads = new Thread[THREAD_COUNT];
 
-    // FPS tracking
     private volatile int fps = 0;
     private volatile double avgFps = 0;
     private int frames = 0;
@@ -54,7 +53,6 @@ public class SimulationPanelTime extends JPanel {
             circles[i] = new Circle(x, y, radius, color, dx, dy);
         }
 
-        // Start worker threads
         for (int i = 0; i < THREAD_COUNT; i++) {
             workerTasks[i] = new WorkerTask(inputQueue, resultQueue, WIDTH, HEIGHT);
             workerThreads[i] = new Thread(workerTasks[i]);
@@ -62,7 +60,6 @@ public class SimulationPanelTime extends JPanel {
             workerThreads[i].start();
         }
 
-        // Game loop thread - replaces javax.swing.Timer
         Thread gameLoop = new Thread(() -> {
             simulationStart = System.currentTimeMillis();
             lastFPSCheck = simulationStart;
@@ -79,7 +76,6 @@ public class SimulationPanelTime extends JPanel {
                     break;
                 }
 
-                // Step 1 - split circles into batches and enqueue
                 int batchSize = circles.length / THREAD_COUNT;
                 for (int i = 0; i < THREAD_COUNT; i++) {
                     int start = i * batchSize;
@@ -93,7 +89,6 @@ public class SimulationPanelTime extends JPanel {
                     inputQueue.enqueue(batch.toString());
                 }
 
-                // Step 2 - collect results
                 int index = 0;
                 for (int i = 0; i < THREAD_COUNT; i++) {
                     String result = (String) resultQueue.dequeue();
@@ -105,13 +100,10 @@ public class SimulationPanelTime extends JPanel {
                     }
                 }
 
-                // Step 3 - handle collisions on main loop thread
                 handleCollisions();
 
-                // Step 4 - repaint on EDT
                 SwingUtilities.invokeLater(this::repaint);
 
-                // FPS tracking
                 frames++;
                 totalFrames++;
                 long now = System.currentTimeMillis();
@@ -125,7 +117,6 @@ public class SimulationPanelTime extends JPanel {
                     System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
                 }
 
-                // Sleep for remainder of frame budget
                 long frameElapsed = System.currentTimeMillis() - frameStart;
                 long sleepTime = FRAME_TIME_MS - frameElapsed;
                 if (sleepTime > 0) {
