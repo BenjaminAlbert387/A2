@@ -1,34 +1,50 @@
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.ArrayList;
 
-public class WorkerTask implements Callable<List<String>> {
+public class WorkerTask implements Runnable {
 
-    private final List<String> serialisedCircles;
+    private final WorkQueue inputQueue;
+    private final WorkQueue resultQueue;
+    private volatile boolean running = true;
     private final int panelWidth;
     private final int panelHeight;
 
-    public WorkerTask(List<String> serialisedCircles, int panelWidth, int panelHeight) {
-        this.serialisedCircles = serialisedCircles;
+    public WorkerTask(WorkQueue inputQueue, WorkQueue resultQueue, int panelWidth, int panelHeight) {
+        this.inputQueue = inputQueue;
+        this.resultQueue = resultQueue;
         this.panelWidth = panelWidth;
         this.panelHeight = panelHeight;
     }
 
+    public void stop() {
+        running = false;
+    }
+
     @Override
-    public List<String> call() {
-        List<String> results = new ArrayList<>();
+    public void run() {
+        while (running) {
+            if (!inputQueue.isEmpty()) {
+                // Dequeue a batch of serialised circle strings
+                String batch = (String) inputQueue.dequeue();
 
-        for (String s : serialisedCircles) {
-            // Deserialise string into a Circle object
-            Circle c = Circle.deserialise(s);
+                // Process each circle in the batch
+                String[] serialisedCircles = batch.split(";");
+                List<String> results = new ArrayList<>();
 
-            // Compute movement
-            c.move(panelWidth, panelHeight);
+                for (String s : serialisedCircles) {
+                    if (!s.isEmpty()) {
+                        Circle c = Circle.deserialise(s);
+                        c.move(panelWidth, panelHeight);
+                        results.add(c.serialise());
+                    }
+                }
 
-            // Serialise back to string and add to results
-            results.add(c.serialise());
+                // Put results back as a single string
+                resultQueue.enqueue(String.join(";", results));
+            } else {
+                // No work available, yield to avoid burning CPU
+                Thread.yield();
+            }
         }
-
-        return results;
     }
 }
