@@ -1,5 +1,7 @@
-// Run the following line of code first: javac Circle.java WorkQueue.java WorkerTask.java SimulationPanelTime.java
-// Then run: java -cp . SimulationPanel.java in terminal
+package Version2;
+
+// Compile: javac Circle.java CircleBatch.java WorkQueue.java WorkerTask.java SimulationPanelTime.java
+// Run:     java SimulationPanelTime
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,32 +10,31 @@ import java.util.Random;
 public class SimulationPanelTime extends JPanel {
 
     private static final long serialVersionUID = 1L;
-    private static final int WIDTH = 1280;
-    private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 3000;
+    private static final int WIDTH               = 1280;
+    private static final int HEIGHT              = 720;
+    private static final int NUMBER_OF_CIRCLES   = 3000;
     private static final int RUN_DURATION_SECONDS = 60;
-    private static final int THREAD_COUNT = 10;
+    private static final int THREAD_COUNT        = 4;
 
     private Circle[] circles;
     private Timer timer;
 
     // One input and result queue per worker
-    private final WorkQueue[] inputQueues = new WorkQueue[THREAD_COUNT];
+    private final WorkQueue[] inputQueues  = new WorkQueue[THREAD_COUNT];
     private final WorkQueue[] resultQueues = new WorkQueue[THREAD_COUNT];
 
-    // Worker threads
-    private final WorkerTask[] workerTasks = new WorkerTask[THREAD_COUNT];
-    private final Thread[] workerThreads = new Thread[THREAD_COUNT];
+    private final WorkerTask[] workerTasks   = new WorkerTask[THREAD_COUNT];
+    private final Thread[]     workerThreads = new Thread[THREAD_COUNT];
 
     // FPS tracking
-    private int frames = 0;
+    private int  frames       = 0;
     private long lastFPSCheck = System.currentTimeMillis();
-    private int fps = 0;
+    private int  fps          = 0;
 
     // Average FPS tracking
-    private long totalFrames = 0;
-    private long simulationStart = System.currentTimeMillis();
-    private double avgFps = 0;
+    private long   totalFrames      = 0;
+    private long   simulationStart  = System.currentTimeMillis();
+    private double avgFps           = 0;
 
     public SimulationPanelTime() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -44,7 +45,7 @@ public class SimulationPanelTime extends JPanel {
 
         for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
             int radius = 10;
-            double x = random.nextInt(WIDTH - 2 * radius) + radius;
+            double x = random.nextInt(WIDTH  - 2 * radius) + radius;
             double y = random.nextInt(HEIGHT - 2 * radius) + radius;
 
             double dx, dy;
@@ -57,21 +58,20 @@ public class SimulationPanelTime extends JPanel {
             circles[i] = new Circle(x, y, radius, color, dx, dy);
         }
 
-        // Start worker threads, each with their own dedicated queues
+        // Start worker threads
         for (int i = 0; i < THREAD_COUNT; i++) {
-            inputQueues[i] = new WorkQueue(4);
+            inputQueues[i]  = new WorkQueue(4);
             resultQueues[i] = new WorkQueue(4);
-            workerTasks[i] = new WorkerTask(inputQueues[i], resultQueues[i], WIDTH, HEIGHT);
+            workerTasks[i]  = new WorkerTask(inputQueues[i], resultQueues[i], WIDTH, HEIGHT);
             workerThreads[i] = new Thread(workerTasks[i]);
             workerThreads[i].setDaemon(true);
             workerThreads[i].start();
         }
 
-        timer = new Timer(33, e -> {
+        timer = new Timer(0, e -> {  // 0ms delay = as fast as possible
             long now = System.currentTimeMillis();
             long elapsedSeconds = (now - simulationStart) / 1000;
 
-            // Stop after RUN_DURATION_SECONDS
             if (elapsedSeconds >= RUN_DURATION_SECONDS) {
                 timer.stop();
                 for (WorkerTask task : workerTasks) task.stop();
@@ -80,38 +80,23 @@ public class SimulationPanelTime extends JPanel {
                 return;
             }
 
-            // Step 1 - split circles into batches and send to each worker's input queue
+            // Step 1 - send each worker a CircleBatch pointing at its slice of the shared array
             int batchSize = circles.length / THREAD_COUNT;
             for (int i = 0; i < THREAD_COUNT; i++) {
                 int start = i * batchSize;
-                int end = (i == THREAD_COUNT - 1) ? circles.length : start + batchSize;
-
-                StringBuilder batch = new StringBuilder();
-                for (int j = start; j < end; j++) {
-                    if (j > start) batch.append(";");
-                    batch.append(circles[j].serialise());
-                }
-
-                // Step 2 - enqueue batch as a single string to this worker's queue
-                inputQueues[i].enqueue(batch.toString());
+                int end   = (i == THREAD_COUNT - 1) ? circles.length : start + batchSize;
+                inputQueues[i].enqueue(new CircleBatch(circles, start, end));
             }
 
-            // Step 3 - collect results from each worker's own result queue
-            int index = 0;
+            // Step 2 - wait for all workers to finish (result queue acts as a done signal)
             for (int i = 0; i < THREAD_COUNT; i++) {
-                // Wait until this worker has finished and posted a result
                 while (resultQueues[i].isEmpty()) {
                     Thread.yield();
                 }
-                String result = (String) resultQueues[i].dequeue();
-                for (String s : result.split(";")) {
-                    if (!s.isEmpty()) {
-                        circles[index++] = Circle.deserialise(s);
-                    }
-                }
+                resultQueues[i].dequeue(); // discard - circles array already updated in place
             }
 
-            // Step 4 - handle collisions centrally
+            // Step 3 - handle collisions centrally on main thread
             handleCollisions();
 
             repaint();
@@ -126,7 +111,7 @@ public class SimulationPanelTime extends JPanel {
 
                 double elapsedSecs = (now - simulationStart) / 1000.0;
                 avgFps = totalFrames / elapsedSecs;
-                //System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
+                System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
             }
         });
 
@@ -139,16 +124,17 @@ public class SimulationPanelTime extends JPanel {
                 Circle a = circles[i];
                 Circle b = circles[j];
 
-                double dx = b.getX() - a.getX();
-                double dy = b.getY() - a.getY();
+                double dx   = b.getX() - a.getX();
+                double dy   = b.getY() - a.getY();
                 double dist = Math.sqrt(dx * dx + dy * dy);
                 double minDist = a.getRadius() + b.getRadius();
 
-                if (dist < minDist) {
+                if (dist < minDist && dist > 0) {
                     double nx = dx / dist;
                     double ny = dy / dist;
 
-                    double p = 2 * (a.getDx() * nx + a.getDy() * ny - b.getDx() * nx - b.getDy() * ny) / 2;
+                    double p = 2 * (a.getDx() * nx + a.getDy() * ny
+                                  - b.getDx() * nx - b.getDy() * ny) / 2;
 
                     a.setDx(a.getDx() - p * nx);
                     a.setDy(a.getDy() - p * ny);
@@ -180,7 +166,7 @@ public class SimulationPanelTime extends JPanel {
         g.drawString("Threads: " + THREAD_COUNT, 10, 60);
         g.drawString("Circles: " + NUMBER_OF_CIRCLES, 10, 80);
 
-        long elapsed = (System.currentTimeMillis() - simulationStart) / 1000;
+        long elapsed   = (System.currentTimeMillis() - simulationStart) / 1000;
         long remaining = RUN_DURATION_SECONDS - elapsed;
         g.drawString("Time remaining: " + remaining + "s", 10, 100);
     }

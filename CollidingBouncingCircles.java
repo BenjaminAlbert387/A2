@@ -9,7 +9,7 @@ public class CollidingBouncingCircles extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 2500;
+    private static final int NUMBER_OF_CIRCLES = 9500;
     private static final int RUN_DURATION_SECONDS = 60;
 
     static class Circle {
@@ -110,7 +110,7 @@ public class CollidingBouncingCircles extends JPanel {
 
                 double elapsed = (now - simulationStart) / 1000.0;
                 avgFps = totalFrames / elapsed;
-                System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
+                //System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
             }
         });
 
@@ -169,6 +169,7 @@ public class CollidingBouncingCircles extends JPanel {
         long elapsed = (System.currentTimeMillis() - simulationStart) / 1000;
         long remaining = RUN_DURATION_SECONDS - elapsed;
         g.drawString("Time remaining: " + remaining + "s", 10, 60);
+        g.drawString("Circles: " + NUMBER_OF_CIRCLES, 10, 80);
     }
 
     public static void main(String[] args) {
