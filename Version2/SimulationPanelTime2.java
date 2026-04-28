@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Random;
 
-public class SimulationPanelTime extends JPanel {
+public class SimulationPanelTime2 extends JPanel {
 
     private static final long serialVersionUID = 1L;
     private static final int WIDTH               = 1280;
@@ -36,7 +36,7 @@ public class SimulationPanelTime extends JPanel {
     private long   simulationStart  = System.currentTimeMillis();
     private double avgFps           = 0;
 
-    public SimulationPanelTime() {
+    public SimulationPanelTime2() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.BLACK);
 
@@ -173,7 +173,7 @@ public class SimulationPanelTime extends JPanel {
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Colliding Bouncing Circles - Multithreaded");
-        SimulationPanelTime panel = new SimulationPanelTime();
+        SimulationPanelTime2 panel = new SimulationPanelTime2();
 
         frame.add(panel);
         frame.pack();
