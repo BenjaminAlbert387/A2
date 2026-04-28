@@ -1,7 +1,7 @@
 package Version2;
 
-// Compile: javac Circle.java CircleBatch.java WorkQueue.java WorkerTask.java SimulationPanelTime.java
-// Run:     java -cp .. Version2.SimulationPanelTime2
+// Compile: javac Circle.java CircleBatch.java WorkQueue.java WorkerTask.java SimulationPanelTime2.java
+// Run:     java -cp . Version2.SimulationPanelTime2
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,9 +12,9 @@ public class SimulationPanelTime2 extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH               = 1280;
     private static final int HEIGHT              = 720;
-    private static final int NUMBER_OF_CIRCLES   = 3000;
+    private static final int NUMBER_OF_CIRCLES   = 50;
     private static final int RUN_DURATION_SECONDS = 60;
-    private static final int THREAD_COUNT        = 4;
+    private static final int THREAD_COUNT        = 2;
 
     private Circle[] circles;
     private Timer timer;
