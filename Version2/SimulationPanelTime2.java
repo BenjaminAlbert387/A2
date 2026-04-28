@@ -1,7 +1,7 @@
 package Version2;
 
 // Compile: javac Circle.java CircleBatch.java WorkQueue.java WorkerTask.java SimulationPanelTime.java
-// Run:     java SimulationPanelTime
+// Run:     java -cp .. Version2.SimulationPanelTime2
 
 import javax.swing.*;
 import java.awt.*;
@@ -111,7 +111,7 @@ public class SimulationPanelTime2 extends JPanel {
 
                 double elapsedSecs = (now - simulationStart) / 1000.0;
                 avgFps = totalFrames / elapsedSecs;
-                System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
+                //System.out.println("Current FPS: " + fps + " | Average FPS: " + String.format("%.1f", avgFps));
             }
         });
 
