@@ -1,5 +1,5 @@
 /**
- * WorkerTaskV2
+ * WorkerTask
  *
  * Each worker owns a contiguous slice [start, end) of the shared circles array.
  * Communication with the main thread uses two volatile boolean flags per worker:

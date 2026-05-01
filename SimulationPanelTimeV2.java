@@ -1,5 +1,5 @@
-// Compile: javac CircleV2V2.java WorkerTaskV2V2.java SimulationPanelTimeV2.java
-// Run:     java SimulationPanelTimeV2
+// Compile: javac Circle.java WorkerTask.java SimulationPanelTime.java
+// Run:     java SimulationPanelTime
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,11 +29,11 @@ public class SimulationPanelTimeV2 extends JPanel {
     @SuppressWarnings("unchecked")
     private final ArrayList<Integer>[][] grid = new ArrayList[GRID_COLS][GRID_ROWS];
 
-    // ── CircleV2s ──────────────────────────────────────────────────────────────
+    // ── Circles ──────────────────────────────────────────────────────────────
     private final CircleV2[] circles = new CircleV2[NUMBER_OF_CIRCLES];
 
     // ── Workers ──────────────────────────────────────────────────────────────
-    private final WorkerTaskV2V2[] workers       = new WorkerTaskV2V2[THREAD_COUNT];
+    private final WorkerTaskV2[] workers       = new WorkerTaskV2[THREAD_COUNT];
     private final Thread[]     workerThreads = new Thread[THREAD_COUNT];
 
     // ── FPS / timing ─────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         int start = 0;
         for (int i = 0; i < THREAD_COUNT; i++) {
             int end = start + base + (i < extra ? 1 : 0);
-            workers[i]       = new WorkerTaskV2V2(circles, start, end, WIDTH, HEIGHT);
+            workers[i]       = new WorkerTaskV2(circles, start, end, WIDTH, HEIGHT);
             workerThreads[i] = new Thread(workers[i]);
             workerThreads[i].setDaemon(true);
             workerThreads[i].start();
@@ -96,7 +96,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         // Stop after the configured duration
         if ((now - simStart) / 1000 >= RUN_DURATION_SECS) {
             swingTimer.stop();
-            for (WorkerTaskV2V2 w : workers) w.stop();
+            for (WorkerTaskV2 w : workers) w.stop();
             System.out.println("Simulation complete after " + RUN_DURATION_SECS + " seconds.");
             System.out.printf("Final average FPS: %.1f%n", avgFps);
             return;
@@ -104,9 +104,9 @@ public class SimulationPanelTimeV2 extends JPanel {
 
         // ── Step 1: parallel movement ────────────────────────────────────────
         // Signal all workers to move+bounce their slice
-        for (WorkerTaskV2V2 w : workers) w.signal();
+        for (WorkerTaskV2 w : workers) w.signal();
         // Wait for all workers to finish before touching the array
-        for (WorkerTaskV2V2 w : workers) w.await();
+        for (WorkerTaskV2 w : workers) w.await();
 
         // ── Step 2: rebuild spatial grid ────────────────────────────────────
         // Clear all cells (reuse the lists to avoid allocation)
@@ -218,7 +218,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         g.drawString("FPS: "         + fps,                                      10, 20);
         g.drawString("Avg FPS: "     + String.format("%.1f", avgFps),            10, 40);
         g.drawString("Threads: "     + THREAD_COUNT,                             10, 60);
-        g.drawString("CircleV2s: "     + NUMBER_OF_CIRCLES,                        10, 80);
+        g.drawString("Circles: "     + NUMBER_OF_CIRCLES,                        10, 80);
         long elapsed   = (System.currentTimeMillis() - simStart) / 1000;
         long remaining = RUN_DURATION_SECS - elapsed;
         g.drawString("Time left: "   + remaining + "s",                          10, 100);
@@ -227,8 +227,8 @@ public class SimulationPanelTimeV2 extends JPanel {
     // ── Entry point ──────────────────────────────────────────────────────────
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Colliding Bouncing CircleV2s – Multithreaded");
-        SimulationPanelTime panel = new SimulationPanelTime();
+        JFrame frame = new JFrame("Colliding Bouncing Circles – Multithreaded");
+        SimulationPanelTimeV2 panel = new SimulationPanelTimeV2();
         frame.add(panel);
         frame.pack();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
