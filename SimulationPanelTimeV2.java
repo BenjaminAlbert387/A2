@@ -1,5 +1,5 @@
-// Compile: javac Circle.java WorkerTask.java SimulationPanelTime.java
-// Run:     java SimulationPanelTime
+// Compile: javac CircleV2.java WorkerTaskV2.java SimulationPanelTimeV2.java
+// Run:     java SimulationPanelTimeV2
 
 import javax.swing.*;
 import java.awt.*;
