@@ -13,9 +13,9 @@ public class SimulationPanelTime2 extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH               = 1280;
     private static final int HEIGHT              = 720;
-    private static final int NUMBER_OF_CIRCLES   = 4000;
+    private static final int NUMBER_OF_CIRCLES   = 50;
     private static final int RUN_DURATION_SECONDS = 60;
-    private static final int THREAD_COUNT        = 8;
+    private static final int THREAD_COUNT        = 3;
 
     private Circle[] circles;
     private Timer timer;

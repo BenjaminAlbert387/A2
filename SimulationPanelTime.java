@@ -10,9 +10,9 @@ public class SimulationPanelTime extends JPanel {
     private static final long serialVersionUID = 1L;
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 3000;
+    private static final int NUMBER_OF_CIRCLES = 7500;
     private static final int RUN_DURATION_SECONDS = 60;
-    private static final int THREAD_COUNT = 10;
+    private static final int THREAD_COUNT = 1;
 
     private Circle[] circles;
     private Timer timer;
@@ -67,7 +67,7 @@ public class SimulationPanelTime extends JPanel {
             workerThreads[i].start();
         }
 
-        timer = new Timer(33, e -> {
+        timer = new Timer(0, e -> {
             long now = System.currentTimeMillis();
             long elapsedSeconds = (now - simulationStart) / 1000;
 

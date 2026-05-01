@@ -16,6 +16,7 @@ public class WorkerTask implements Runnable {
         this.panelHeight = panelHeight;
     }
 
+
     public void stop() {
         running = false;
     }
