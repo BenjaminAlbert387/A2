@@ -13,9 +13,9 @@ public class SimulationPanelTimeV2 extends JPanel {
     // ── Simulation parameters ────────────────────────────────────────────────
     private static final int WIDTH              = 1280;
     private static final int HEIGHT             = 720;
-    private static final int NUMBER_OF_CIRCLES  = 1000;
+    private static final int NUMBER_OF_CIRCLES  = 200;
     private static final int RADIUS             = 10;
-    private static final int THREAD_COUNT       = 4;
+    private static final int THREAD_COUNT       = 2;
     private static final int RUN_DURATION_SECS  = 60;
 
     // ── Spatial grid ─────────────────────────────────────────────────────────
