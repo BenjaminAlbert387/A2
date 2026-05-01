@@ -1,5 +1,6 @@
 // Compile: javac CircleV2.java WorkerTaskV2.java SimulationPanelTimeV2.java
 // Run:     java SimulationPanelTimeV2
+// javac CircleV2.java WorkerTaskV2.java SimulationPanelTimeV2.java && java SimulationPanelTimeV2
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,9 +14,9 @@ public class SimulationPanelTimeV2 extends JPanel {
     // ── Simulation parameters ────────────────────────────────────────────────
     private static final int WIDTH              = 1280;
     private static final int HEIGHT             = 720;
-    private static final int NUMBER_OF_CIRCLES  = 200;
+    private static final int NUMBER_OF_CIRCLES  = 2500;
     private static final int RADIUS             = 10;
-    private static final int THREAD_COUNT       = 2;
+    private static final int THREAD_COUNT       = 8;
     private static final int RUN_DURATION_SECS  = 60;
 
     // ── Spatial grid ─────────────────────────────────────────────────────────
@@ -83,8 +84,8 @@ public class SimulationPanelTimeV2 extends JPanel {
             start = end;
         }
 
-        // Main game loop via Swing Timer (runs on the EDT)
-        swingTimer = new Timer(0, e -> gameLoop());
+        // FPS limiter
+        swingTimer = new Timer(33, e -> gameLoop());
         swingTimer.start();
     }
 
