@@ -1,4 +1,4 @@
-// Compile: javac CircleV2.java WorkerTaskV2.java SimulationPanelTimeV2.java
+// Compile: javac CircleV2V2.java WorkerTaskV2V2.java SimulationPanelTimeV2.java
 // Run:     java SimulationPanelTimeV2
 
 import javax.swing.*;
@@ -29,11 +29,11 @@ public class SimulationPanelTimeV2 extends JPanel {
     @SuppressWarnings("unchecked")
     private final ArrayList<Integer>[][] grid = new ArrayList[GRID_COLS][GRID_ROWS];
 
-    // ── Circles ──────────────────────────────────────────────────────────────
-    private final Circle[] circles = new Circle[NUMBER_OF_CIRCLES];
+    // ── CircleV2s ──────────────────────────────────────────────────────────────
+    private final CircleV2[] circles = new CircleV2[NUMBER_OF_CIRCLES];
 
     // ── Workers ──────────────────────────────────────────────────────────────
-    private final WorkerTaskV2[] workers       = new WorkerTaskV2[THREAD_COUNT];
+    private final WorkerTaskV2V2[] workers       = new WorkerTaskV2V2[THREAD_COUNT];
     private final Thread[]     workerThreads = new Thread[THREAD_COUNT];
 
     // ── FPS / timing ─────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ public class SimulationPanelTimeV2 extends JPanel {
                 dy = rng.nextDouble() * 4 - 2;
             } while (dx == 0 && dy == 0);
             Color color = new Color(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256));
-            circles[i] = new Circle(x, y, RADIUS, color, dx, dy);
+            circles[i] = new CircleV2(x, y, RADIUS, color, dx, dy);
         }
 
         // Create workers, each responsible for a contiguous slice of the array
@@ -76,7 +76,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         int start = 0;
         for (int i = 0; i < THREAD_COUNT; i++) {
             int end = start + base + (i < extra ? 1 : 0);
-            workers[i]       = new WorkerTaskV2(circles, start, end, WIDTH, HEIGHT);
+            workers[i]       = new WorkerTaskV2V2(circles, start, end, WIDTH, HEIGHT);
             workerThreads[i] = new Thread(workers[i]);
             workerThreads[i].setDaemon(true);
             workerThreads[i].start();
@@ -96,7 +96,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         // Stop after the configured duration
         if ((now - simStart) / 1000 >= RUN_DURATION_SECS) {
             swingTimer.stop();
-            for (WorkerTaskV2 w : workers) w.stop();
+            for (WorkerTaskV2V2 w : workers) w.stop();
             System.out.println("Simulation complete after " + RUN_DURATION_SECS + " seconds.");
             System.out.printf("Final average FPS: %.1f%n", avgFps);
             return;
@@ -104,9 +104,9 @@ public class SimulationPanelTimeV2 extends JPanel {
 
         // ── Step 1: parallel movement ────────────────────────────────────────
         // Signal all workers to move+bounce their slice
-        for (WorkerTaskV2 w : workers) w.signal();
+        for (WorkerTaskV2V2 w : workers) w.signal();
         // Wait for all workers to finish before touching the array
-        for (WorkerTaskV2 w : workers) w.await();
+        for (WorkerTaskV2V2 w : workers) w.await();
 
         // ── Step 2: rebuild spatial grid ────────────────────────────────────
         // Clear all cells (reuse the lists to avoid allocation)
@@ -179,7 +179,7 @@ public class SimulationPanelTimeV2 extends JPanel {
         }
     }
 
-    private void resolveCollision(Circle a, Circle b) {
+    private void resolveCollision(CircleV2 a, CircleV2 b) {
         double dx   = b.getX() - a.getX();
         double dy   = b.getY() - a.getY();
         double dist = Math.sqrt(dx * dx + dy * dy);
@@ -211,14 +211,14 @@ public class SimulationPanelTimeV2 extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        for (Circle c : circles) c.draw(g);
+        for (CircleV2 c : circles) c.draw(g);
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString("FPS: "         + fps,                                      10, 20);
         g.drawString("Avg FPS: "     + String.format("%.1f", avgFps),            10, 40);
         g.drawString("Threads: "     + THREAD_COUNT,                             10, 60);
-        g.drawString("Circles: "     + NUMBER_OF_CIRCLES,                        10, 80);
+        g.drawString("CircleV2s: "     + NUMBER_OF_CIRCLES,                        10, 80);
         long elapsed   = (System.currentTimeMillis() - simStart) / 1000;
         long remaining = RUN_DURATION_SECS - elapsed;
         g.drawString("Time left: "   + remaining + "s",                          10, 100);
@@ -227,7 +227,7 @@ public class SimulationPanelTimeV2 extends JPanel {
     // ── Entry point ──────────────────────────────────────────────────────────
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Colliding Bouncing Circles – Multithreaded");
+        JFrame frame = new JFrame("Colliding Bouncing CircleV2s – Multithreaded");
         SimulationPanelTime panel = new SimulationPanelTime();
         frame.add(panel);
         frame.pack();

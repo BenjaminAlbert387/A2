@@ -1,5 +1,5 @@
 /**
- * WorkerTask
+ * WorkerTaskV2
  *
  * Each worker owns a contiguous slice [start, end) of the shared circles array.
  * Communication with the main thread uses two volatile boolean flags per worker:
@@ -10,7 +10,7 @@
  */
 public class WorkerTaskV2 implements Runnable {
 
-    private final Circle[] circles;
+    private final CircleV2[] circles;
     private final int start;
     private final int end;
     private final int width;
@@ -21,7 +21,7 @@ public class WorkerTaskV2 implements Runnable {
     private volatile boolean workDone  = false;
     private volatile boolean running   = true;
 
-    public WorkerTaskV2(Circle[] circles, int start, int end, int width, int height) {
+    public WorkerTaskV2(CircleV2[] circles, int start, int end, int width, int height) {
         this.circles = circles;
         this.start   = start;
         this.end     = end;
@@ -65,7 +65,7 @@ public class WorkerTaskV2 implements Runnable {
 
             // Move each circle in our slice and bounce off walls
             for (int i = start; i < end; i++) {
-                Circle c = circles[i];
+                CircleV2 c = circles[i];
                 c.setX(c.getX() + c.getDx());
                 c.setY(c.getY() + c.getDy());
 
