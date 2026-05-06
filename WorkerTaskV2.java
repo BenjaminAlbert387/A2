@@ -5,8 +5,6 @@
  * Communication with the main thread uses two volatile boolean flags per worker:
  *   workReady  – main sets true to tell the worker to start a frame
  *   workDone   – worker sets true when the frame is finished
- *
- * No serialisation, no queues, no synchronized blocks.
  */
 public class WorkerTaskV2 implements Runnable {
 
@@ -17,10 +15,12 @@ public class WorkerTaskV2 implements Runnable {
     private final int height;
 
     // Flags shared with the main thread (written by one side, read by the other)
+    // Used instead of synchronised or other Java key words
     private volatile boolean workReady = false;
     private volatile boolean workDone  = false;
     private volatile boolean running   = true;
 
+    // Receive the shared circles array and this worker's assigned slice bounds
     public WorkerTaskV2(CircleV2[] circles, int start, int end, int width, int height) {
         this.circles = circles;
         this.start   = start;
@@ -29,28 +29,30 @@ public class WorkerTaskV2 implements Runnable {
         this.height  = height;
     }
 
-    // ── Called by the main thread ────────────────────────────────────────────
+    // Called by the main thread
 
-    /** Tell this worker to process one frame. */
+    // Tell this worker to process a single frame
     public void signal() {
         workDone  = false;
-        workReady = true;          // worker will see this and wake up
+        // Causes the worker to start up
+        workReady = true;
     }
 
-    /** Block the calling thread until this worker has finished. */
+    // Block the calling thread until this worker has finished
     public void await() {
         while (!workDone) {
-            Thread.yield();        // give up timeslice while spinning
+            Thread.yield();
         }
     }
 
-    /** Shut down the worker loop cleanly. */
+    // Shut down the worker loop
     public void stop() {
         running = false;
-        workReady = true;          // unblock the spin loop so the thread can exit
+        // Unblocks the spin loop so the thread can exit
+        workReady = true;
     }
 
-    // ── Worker loop ──────────────────────────────────────────────────────────
+    // Worker loop
 
     @Override
     public void run() {
@@ -88,7 +90,8 @@ public class WorkerTaskV2 implements Runnable {
                 }
             }
 
-            workDone = true;       // tell main thread we're done
+            // Tells the main thread that the work in the worker thread is done
+            workDone = true;
         }
     }
 }
