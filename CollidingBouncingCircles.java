@@ -12,7 +12,7 @@ public class CollidingBouncingCircles extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 100;
+    private static final int NUMBER_OF_CIRCLES = 50;
     private static final int RUN_DURATION_SECS = 60;
 
     // FPS / timing
