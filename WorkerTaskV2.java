@@ -17,7 +17,7 @@ public class WorkerTaskV2 implements Runnable {
     private volatile boolean workDone  = false;
     private volatile boolean running   = true;
 
-    // Receive the shared circles array and this worker's assigned slice bounds
+    // Receive the parsed string
     public WorkerTaskV2(CircleV2[] circles, String params) {
         String[] parts = params.split(",");
         this.start  = Integer.parseInt(parts[0]);
