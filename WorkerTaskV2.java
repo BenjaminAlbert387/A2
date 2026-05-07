@@ -1,11 +1,8 @@
-/**
- * WorkerTask
- *
- * Each worker owns a contiguous slice [start, end) of the shared circles array.
- * Communication with the main thread uses two volatile boolean flags per worker:
- *   workReady  – main sets true to tell the worker to start a frame
- *   workDone   – worker sets true when the frame is finished
- */
+// Each worker gets a parsed string
+// Communication with the main thread uses two volatile boolean flags per worker:
+// workReady: main sets true to tell the worker to start a frame
+// workDone: worker sets true when the frame is finished
+
 public class WorkerTaskV2 implements Runnable {
 
     private final CircleV2[] circles;
