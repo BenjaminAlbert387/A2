@@ -96,7 +96,8 @@ public class SimulationPanelTimeV2 extends JPanel {
         // Create and start each worker thread with its assigned part of the circles array
         for (int i = 0; i < THREAD_COUNT; i++) {
             int end = start + base + (i < extra ? 1 : 0);
-            workers[i] = new WorkerTaskV2(circles, start, end, WIDTH, HEIGHT);
+            String params = start + "," + end + "," + WIDTH + "," + HEIGHT;
+            workers[i] = new WorkerTaskV2(circles, params);
             workerThreads[i] = new Thread(workers[i]);
             workerThreads[i].setDaemon(true);
             workerThreads[i].start();

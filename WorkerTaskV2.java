@@ -21,19 +21,23 @@ public class WorkerTaskV2 implements Runnable {
     private volatile boolean running   = true;
 
     // Receive the shared circles array and this worker's assigned slice bounds
-    public WorkerTaskV2(CircleV2[] circles, int start, int end, int width, int height) {
+    public WorkerTaskV2(CircleV2[] circles, String params) {
+        String[] parts = params.split(",");
+        this.start  = Integer.parseInt(parts[0]);
+        this.end    = Integer.parseInt(parts[1]);
+        this.width  = Integer.parseInt(parts[2]);
+        this.height = Integer.parseInt(parts[3]);
         this.circles = circles;
-        this.start   = start;
-        this.end     = end;
-        this.width   = width;
-        this.height  = height;
     }
 
     // Called by the main thread
 
     // Tell this worker to process a single frame
+    private volatile String command = "";
+
     public void signal() {
         workDone  = false;
+        command = "run";
         // Causes the worker to start up
         workReady = true;
     }
@@ -47,6 +51,7 @@ public class WorkerTaskV2 implements Runnable {
 
     // Shut down the worker loop
     public void stop() {
+        command = "stop";
         running = false;
         // Unblocks the spin loop so the thread can exit
         workReady = true;
@@ -56,6 +61,8 @@ public class WorkerTaskV2 implements Runnable {
 
     @Override
     public void run() {
+        if (command.equals("run")) {
+    }
         while (running) {
             // Wait for the main thread to signal work
             while (!workReady) {
@@ -63,7 +70,7 @@ public class WorkerTaskV2 implements Runnable {
             }
             workReady = false;
 
-            if (!running) break;
+            if (command.equals("stop")) break;
 
             // Move each circle in our slice and bounce off walls
             for (int i = start; i < end; i++) {
