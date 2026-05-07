@@ -12,7 +12,7 @@ public class CollidingBouncingCircles extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 50;
+    private static final int NUMBER_OF_CIRCLES = 500;
     private static final int RUN_DURATION_SECS = 60;
 
     // FPS / timing
@@ -82,7 +82,7 @@ public class CollidingBouncingCircles extends JPanel {
             circles[i] = new Circle(x, y, radius, color, dx, dy);
         }
 
-        timer = new Timer(33, e -> {
+        timer = new Timer(0, e -> {
             long now = System.currentTimeMillis();
             // Stop after the configured duration
             if ((now - simStart) / 1000 >= RUN_DURATION_SECS) {

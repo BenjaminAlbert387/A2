@@ -15,11 +15,11 @@ public class SimulationPanelTimeV2 extends JPanel {
     // Width and height is the size of the window when the simulation is started
     private static final int WIDTH = 1280;
     private static final int HEIGHT = 720;
-    private static final int NUMBER_OF_CIRCLES = 2500;
+    private static final int NUMBER_OF_CIRCLES = 500;
 
     // Radius is how large the collision range is
     private static final int RADIUS = 10;
-    private static final int THREAD_COUNT = 8;
+    private static final int THREAD_COUNT = 2;
     private static final int RUN_DURATION_SECS = 60;
 
     // Spatial grid
@@ -106,7 +106,7 @@ public class SimulationPanelTimeV2 extends JPanel {
 
         // FPS limiter
         // A delay of 33ms will cap the code to 30FPS
-        swingTimer = new Timer(33, e -> gameLoop());
+        swingTimer = new Timer(0, e -> gameLoop());
         swingTimer.start();
     }
 
