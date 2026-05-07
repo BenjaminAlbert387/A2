@@ -88,12 +88,12 @@ public class SimulationPanelTimeV2 extends JPanel {
             circles[i] = new CircleV2(x, y, RADIUS, color, dx, dy);
         }
 
-        // Create workers, each having a part of the shared circles array
+        // Create workers based on the number of circles
         int base  = NUMBER_OF_CIRCLES / THREAD_COUNT;
         int extra = NUMBER_OF_CIRCLES % THREAD_COUNT;
         int start = 0;
 
-        // Create and start each worker thread with its assigned part of the circles array
+        // Start each worker thread with string parsing
         for (int i = 0; i < THREAD_COUNT; i++) {
             int end = start + base + (i < extra ? 1 : 0);
             String params = start + "," + end + "," + WIDTH + "," + HEIGHT;
