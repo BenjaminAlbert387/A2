@@ -124,10 +124,10 @@ public class SimulationPanelTimeV2 extends JPanel {
         }
 
         // Step 1:
-        // Signal all workers to move and bounce their slice
+        // Signal all workers to begin working
         for (WorkerTaskV2 w : workers) w.signal();
 
-        // Wait for all workers to finish before touching the array
+        // Wait for all workers to finish working
         for (WorkerTaskV2 w : workers) w.await();
 
         // Step 2:
