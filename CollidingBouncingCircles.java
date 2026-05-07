@@ -1,3 +1,5 @@
+// javac Circle.java CollidingBouncingCircles.java && java CollidingBouncingCircles
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Random;
@@ -18,6 +20,7 @@ public class CollidingBouncingCircles extends JPanel {
     private int fps = 0;
     private long simStart = System.currentTimeMillis();
     private double avgFps = 0;
+    private long totalFrames = 0;
     private Timer swingTimer;
 
     static class Circle {
@@ -101,10 +104,13 @@ public class CollidingBouncingCircles extends JPanel {
 
             // FPS counter
             frames++;
+            totalFrames++;
             if (now - lastFPSCheck >= 1000) {
                 fps = frames;
                 frames = 0;
                 lastFPSCheck = now;
+                double elapsed = (now - simStart) / 1000.0;
+                avgFps = totalFrames / elapsed;
             }
         });
 
